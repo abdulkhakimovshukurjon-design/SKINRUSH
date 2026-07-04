@@ -516,7 +516,94 @@ document.getElementById("nav").addEventListener("click", (e) => {
     showToast(tr("toast_section"));
   }
 });
-document.getElementById("loginBtn").addEventListener("click", () => showToast(tr("toast_login")));
+// ---------- Player auth (Telegram) ----------
+let AUTH = { authenticated: false };
+let AUTH_CFG = { enabled: false, bot: "" };
+
+const loginBtn = document.getElementById("loginBtn");
+const userChip = document.getElementById("userChip");
+const userName = document.getElementById("userName");
+const userCoins = document.getElementById("userCoins");
+const userAvatar = document.getElementById("userAvatar");
+const logoutBtn = document.getElementById("logoutBtn");
+const authModal = document.getElementById("authModal");
+const tgLoginBox = document.getElementById("tgLoginBox");
+const authNote = document.getElementById("authNote");
+
+function paintAuth() {
+  const on = !!AUTH.authenticated;
+  loginBtn.hidden = on;
+  userChip.hidden = !on;
+  if (on) {
+    userName.textContent = AUTH.name || "";
+    userCoins.textContent = fmt(AUTH.balance || 0);
+    if (AUTH.photo) {
+      userAvatar.src = AUTH.photo;
+      userAvatar.hidden = false;
+    } else userAvatar.hidden = true;
+  }
+}
+
+async function loadAuth() {
+  try {
+    const [cfg, me] = await Promise.all([jget(`${API}/auth/config/`), jget(`${API}/auth/me/`)]);
+    AUTH_CFG = cfg;
+    AUTH = me;
+  } catch (_) {}
+  paintAuth();
+}
+
+function openAuthModal() {
+  authModal.hidden = false;
+  authNote.textContent = "";
+  tgLoginBox.innerHTML = "";
+  if (!AUTH_CFG.enabled || !AUTH_CFG.bot) {
+    authNote.textContent = tr("auth_not_ready");
+    return;
+  }
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://telegram.org/js/telegram-widget.js?22";
+  s.setAttribute("data-telegram-login", AUTH_CFG.bot);
+  s.setAttribute("data-size", "large");
+  s.setAttribute("data-radius", "10");
+  s.setAttribute("data-onauth", "onTelegramAuth(user)");
+  s.setAttribute("data-request-access", "write");
+  tgLoginBox.appendChild(s);
+}
+function closeAuthModal() {
+  authModal.hidden = true;
+}
+
+// Telegram widget success callback (must be global)
+window.onTelegramAuth = async (user) => {
+  authNote.textContent = "…";
+  const res = await jpost(`${API}/auth/telegram/`, user);
+  if (res.authenticated) {
+    AUTH = res;
+    closeAuthModal();
+    paintAuth();
+    loadMe(false);
+    showToast(tr("toast_welcome", { name: res.name }));
+  } else {
+    authNote.textContent = res.error || "Xatolik";
+  }
+};
+
+loginBtn.addEventListener("click", openAuthModal);
+authModal.addEventListener("click", (e) => {
+  if (e.target.closest("[data-authclose]")) closeAuthModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !authModal.hidden) closeAuthModal();
+});
+logoutBtn.addEventListener("click", async () => {
+  await jpost(`${API}/auth/logout/`);
+  AUTH = { authenticated: false };
+  paintAuth();
+  loadMe(false);
+  showToast(tr("toast_logout"));
+});
 
 // ---------- Language switcher ----------
 // Little rounded SVG flags (self-contained, render the same on every OS).
@@ -882,6 +969,7 @@ async function boot() {
     applyI18n();
   } catch (_) {}
 
+  loadAuth();
   loadCases();
   buildTopDrops();
   setInterval(buildTopDrops, 45000);

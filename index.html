@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
 </head>
 <body>
   <!-- TOP DROPS STRIP -->
@@ -43,9 +43,32 @@
           <div class="lang-menu" id="langMenu" hidden></div>
         </div>
         <button class="btn btn--login" id="loginBtn" data-i18n="login">Kirish</button>
+        <div class="user-chip" id="userChip" hidden>
+          <img class="user-chip__avatar" id="userAvatar" alt="" hidden />
+          <div class="user-chip__info">
+            <span class="user-chip__name" id="userName"></span>
+            <span class="user-chip__coins"><img class="coin-img" src="images/coin.png" alt="" /> <b id="userCoins">0</b></span>
+          </div>
+          <button class="user-chip__logout" id="logoutBtn" title="Chiqish" aria-label="logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </header>
+
+  <!-- AUTH MODAL (Telegram login) -->
+  <div class="auth-modal" id="authModal" hidden>
+    <div class="auth-modal__backdrop" data-authclose></div>
+    <div class="auth-modal__card">
+      <button class="auth-modal__close" data-authclose aria-label="close">&times;</button>
+      <div class="auth-modal__logo">SKIN<span>RUSH</span></div>
+      <div class="auth-modal__title" data-i18n="auth_title">Hisobingizga kiring</div>
+      <div class="auth-modal__sub" data-i18n="auth_sub">Telegram orqali tez va xavfsiz</div>
+      <div class="auth-modal__widget" id="tgLoginBox"></div>
+      <div class="auth-modal__note" id="authNote"></div>
+    </div>
+  </div>
 
   <!-- NAV -->
   <nav class="nav">
@@ -274,6 +297,6 @@
   <div class="toast" id="toast"></div>
 
   <!-- All data, game logic and translations come from the Django REST backend (/api/...). -->
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
