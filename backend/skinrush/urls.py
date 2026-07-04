@@ -22,8 +22,8 @@ def admin_panel(request):
 
 
 urlpatterns = [
-    # Custom admin panel (our own UI) — reached only via this URL, no link on the site.
-    path("adminpanel/", admin_panel, name="adminpanel"),
+    # Custom admin panel (our own UI) — works with or without a trailing slash.
+    re_path(r"^adminpanel/?$", admin_panel, name="adminpanel"),
     # Built-in Django admin kept as a hidden fallback only.
     path("django-admin/", admin.site.urls),
     path("api/", include("api.urls")),

@@ -57,7 +57,9 @@
       "Bash(python -c \"import sys,json; print\\('lang:', json.load\\(sys.stdin\\)['lang']\\)\")",
       "Bash(ADMIN_USERNAME=admin ADMIN_PASSWORD=test1234 python manage.py ensure_admin)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('sound key present:', 'sound' in d['strings']\\)\")",
-      "PowerShell(Start-Process \"chrome\" \"http://127.0.0.1:8000/adminpanel/\"; Write-Output \"opened\")"
+      "PowerShell(Start-Process \"chrome\" \"http://127.0.0.1:8000/adminpanel/\"; Write-Output \"opened\")",
+      "Bash(echo \"slashsiz:  $\\(curl -s -o /dev/null -w '%{http_code}' https://skinrush.onrender.com/adminpanel\\)\")",
+      "Bash(echo \"slash bilan: $\\(curl -s -o /dev/null -w '%{http_code}' https://skinrush.onrender.com/adminpanel/\\)\")"
     ]
   }
 }
