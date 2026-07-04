@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils.text import slugify
 
-STARTING_BALANCE = 1000  # coins granted to a newly registered player
+STARTING_BALANCE = 1500  # coins granted to a newly registered player
 
 
 class Case(models.Model):
@@ -89,6 +89,11 @@ class Player(models.Model):
 
     balance = models.BigIntegerField(default=STARTING_BALANCE)  # current coins
     coins_purchased = models.BigIntegerField(default=0)         # total coins ever bought
+    total_won = models.BigIntegerField(default=0)              # total coins won (sold skins)
+    streak = models.IntegerField(default=0)                    # consecutive daily-claim days
+    invited_count = models.IntegerField(default=0)             # referred friends
+    daily_day = models.IntegerField(default=0)                 # position in the 14-day cycle
+    daily_claimed_date = models.DateField(null=True, blank=True)  # last daily claim
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)  # registered at
     last_seen = models.DateTimeField(auto_now=True)
 

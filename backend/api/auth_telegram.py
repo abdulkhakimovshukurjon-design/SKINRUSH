@@ -22,7 +22,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .admin_api import CsrfExemptSession
+from .authentication import CsrfExemptSession
 from .models import Player
 
 
@@ -68,9 +68,8 @@ def player_payload(p):
 
 
 def current_player(request):
-    """The logged-in Player for a request (None for anonymous / staff)."""
-    base = getattr(request, "_request", request)
-    user = getattr(base, "user", None)
+    """The logged-in Player for a request (None for anonymous / staff-only)."""
+    user = getattr(request, "user", None)
     if not (user and user.is_authenticated):
         return None
     try:

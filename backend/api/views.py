@@ -4,7 +4,9 @@ Every case serves its own real skins with the source's real drop chance and
 price. The draw is weighted by those real chances on the server.
 """
 import random
+from datetime import timedelta
 
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -141,7 +143,8 @@ def me(request):
         return Response({
             "authenticated": True, "name": player.display_name,
             "photo": player.photo_url, "balance": player.balance,
-            "streak": 0, "invited": 0, "total_won": player.balance,
+            "streak": player.streak, "invited": player.invited_count,
+            "total_won": player.total_won,
         })
     return Response(get_state(request))
 
@@ -175,13 +178,14 @@ def sell(request):
     player = current_player(request)
     if player:
         player.balance += item.price
-        player.save(update_fields=["balance", "last_seen"])
+        player.total_won += item.price
+        player.save(update_fields=["balance", "total_won", "last_seen"])
         rec = player.opens.filter(skin_name=item.name, sold=False).first()
         if rec:
             rec.sold = True
             rec.save(update_fields=["sold"])
         return Response({"sold": item.price, "balance": player.balance,
-                         "total_won": player.balance})
+                         "total_won": player.total_won})
     state = get_state(request)
     state["balance"] += item.price
     state["total_won"] += item.price
@@ -221,19 +225,71 @@ def _daily_tasks(lang):
             for t in DAILY_TASKS]
 
 
+def _seconds_to_midnight():
+    now = timezone.now()
+    nxt = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return int((nxt - now).total_seconds())
+
+
+def _player_daily(player, today):
+    """Real per-player day states: (days, active_day, claimed_today)."""
+    claimed_today = player.daily_claimed_date == today
+    if claimed_today:
+        last_day, active_day = player.daily_day, None
+    elif player.daily_claimed_date == today - timedelta(days=1):
+        last_day, active_day = player.daily_day, (player.daily_day % 14) + 1
+    else:
+        last_day, active_day = 0, 1
+    days = []
+    for d, r, base in DAILY_DAYS:
+        if d <= last_day:
+            state = "claimed"
+        elif d == active_day:
+            state = "active"
+        elif base == "special":
+            state = "special"
+        else:
+            state = "locked"
+        days.append({"d": d, "r": r, "state": state})
+    return days, active_day, claimed_today
+
+
 @api_view(["GET"])
 def daily(request):
+    lang = i18n.get_lang(request)
+    player = current_player(request)
+    if player:
+        today = timezone.now().date()
+        days, _, claimed_today = _player_daily(player, today)
+        return Response({"days": days, "tasks": _daily_tasks(lang),
+                         "timer_seconds": _seconds_to_midnight(), "claimed": claimed_today})
     claimed = request.session.get("daily_claimed", False)
-    return Response({
-        "days": _daily_days(claimed),
-        "tasks": _daily_tasks(i18n.get_lang(request)),
-        "timer_seconds": DAILY_TIMER_SECONDS,
-        "claimed": claimed,
-    })
+    return Response({"days": _daily_days(claimed), "tasks": _daily_tasks(lang),
+                     "timer_seconds": DAILY_TIMER_SECONDS, "claimed": claimed})
 
 
 @api_view(["POST"])
 def daily_claim(request):
+    player = current_player(request)
+    if player:
+        today = timezone.now().date()
+        if player.daily_claimed_date == today:
+            return Response({"claimed": True, "reward": 0, "balance": player.balance})
+        if player.daily_claimed_date == today - timedelta(days=1):
+            new_day = (player.daily_day % 14) + 1
+            player.streak += 1
+        else:
+            new_day = 1
+            player.streak = 1
+        reward = DAILY_DAYS[new_day - 1][1]
+        player.balance += reward
+        player.daily_day = new_day
+        player.daily_claimed_date = today
+        player.save(update_fields=["balance", "daily_day", "daily_claimed_date",
+                                   "streak", "last_seen"])
+        days, _, _ = _player_daily(player, today)
+        return Response({"claimed": True, "reward": reward,
+                         "balance": player.balance, "days": days})
     if request.session.get("daily_claimed", False):
         return Response({"claimed": True, "reward": 0, "balance": get_state(request)["balance"]})
     request.session["daily_claimed"] = True

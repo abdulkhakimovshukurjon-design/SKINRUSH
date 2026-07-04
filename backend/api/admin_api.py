@@ -5,7 +5,6 @@ The admin front-end (admin/index.html) is a thin client that calls these.
 """
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Count, Sum
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -14,14 +13,8 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from .authentication import CsrfExemptSession
 from .models import Case, CaseItem, CoinPurchase, Drop, OpenRecord, Player
-
-
-class CsrfExemptSession(SessionAuthentication):
-    """Session auth without CSRF enforcement (same-origin JSON admin)."""
-
-    def enforce_csrf(self, request):
-        return
 
 
 def _case_row(c):

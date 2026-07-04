@@ -60,7 +60,10 @@
       "PowerShell(Start-Process \"chrome\" \"http://127.0.0.1:8000/adminpanel/\"; Write-Output \"opened\")",
       "Bash(echo \"slashsiz:  $\\(curl -s -o /dev/null -w '%{http_code}' https://skinrush.onrender.com/adminpanel\\)\")",
       "Bash(echo \"slash bilan: $\\(curl -s -o /dev/null -w '%{http_code}' https://skinrush.onrender.com/adminpanel/\\)\")",
-      "Bash(PYTHONIOENCODING=utf-8 python manage.py demo_users)"
+      "Bash(PYTHONIOENCODING=utf-8 python manage.py demo_users)",
+      "Bash(python -c \"import sys,json; s=json.load\\(sys.stdin\\)['strings']; print\\('auth_not_ready:', s.get\\('auth_not_ready','YO_Q'\\)\\); print\\('auth_title:', s.get\\('auth_title','YO_Q'\\)\\)\")",
+      "Bash(export TELEGRAM_BOT_TOKEN=\"8700636441:AAHFjW-qg6eeqNzROIx2S_oS-5TFakySTdY\")",
+      "Bash(export TELEGRAM_BOT_USERNAME=\"skin_rush_auth_bot\")"
     ]
   }
 }

@@ -103,8 +103,8 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
-    # State is anonymous and per-session; no auth (and thus no CSRF check on the
-    # POST endpoints, which are called by the same-origin front-end via fetch).
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    # Session auth (so logged-in players are detected via request.user) but
+    # without CSRF tokens — the front-end is same-origin and calls JSON via fetch.
+    "DEFAULT_AUTHENTICATION_CLASSES": ["api.authentication.CsrfExemptSession"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
 }

@@ -584,6 +584,7 @@ window.onTelegramAuth = async (user) => {
     closeAuthModal();
     paintAuth();
     loadMe(false);
+    dailyCtl.reload();
     showToast(tr("toast_welcome", { name: res.name }));
   } else {
     authNote.textContent = res.error || "Xatolik";
@@ -602,6 +603,7 @@ logoutBtn.addEventListener("click", async () => {
   AUTH = { authenticated: false };
   paintAuth();
   loadMe(false);
+  dailyCtl.reload();
   showToast(tr("toast_logout"));
 });
 
