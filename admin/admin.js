@@ -72,8 +72,12 @@ function switchView(view) {
     b.classList.toggle("is-active", b.dataset.view === view)
   );
   if (view === "dashboard") renderDashboard();
+  else if (view === "users") renderUsers();
   else if (view === "cases") renderCases();
 }
+
+const dt = (s) => (s ? new Date(s).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+const dOnly = (s) => (s ? new Date(s).toLocaleDateString("ru-RU") : "—");
 
 // ---------- dashboard ----------
 async function renderDashboard() {
@@ -84,8 +88,10 @@ async function renderDashboard() {
     <div class="loading">Yuklanmoqda…</div>`;
   const s = await jget(`${API}/stats/`);
   const cards = [
+    { n: s.players, label: "Foydalanuvchilar", c: "var(--green)" },
     { n: s.cases, label: "Keyslar", c: "var(--violet)" },
     { n: s.skins, label: "Noyob skinlar", c: "var(--teal)" },
+    { n: s.opens, label: "Ochilgan keyslar", c: "var(--pink)" },
     { n: s.items, label: "Jami elementlar", c: "var(--blue)" },
     { n: s.drops, label: "Droplar", c: "var(--gold)" },
   ];
@@ -101,6 +107,111 @@ async function renderDashboard() {
           <div class="stat-card__label">${c.label}</div>
         </div>`).join("")}
     </div>`;
+}
+
+// ---------- users ----------
+async function renderUsers() {
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="page-title">Foydalanuvchilar</div>
+        <div class="page-sub">Ro'yxatdan o'tgan barcha o'yinchilar</div>
+      </div>
+      <input class="admin-input" id="userSearch" placeholder="Ism yoki username..." />
+    </div>
+    <div id="usersBody"><div class="loading">Yuklanmoqda…</div></div>`;
+  const search = document.getElementById("userSearch");
+  let t;
+  search.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(() => loadUsers(search.value.trim()), 200);
+  });
+  loadUsers("");
+}
+
+async function loadUsers(q) {
+  const body = document.getElementById("usersBody");
+  const users = await jget(`${API}/users/${q ? "?q=" + encodeURIComponent(q) : ""}`);
+  if (!users.length) {
+    body.innerHTML = `<div class="loading">Hozircha foydalanuvchi yo'q.</div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div class="table-wrap"><div class="table-scroll"><table>
+      <thead><tr>
+        <th>Foydalanuvchi</th><th>Balans</th><th>Sotib olgan</th>
+        <th>Ochgan</th><th>Ro'yxatdan o'tgan</th>
+      </tr></thead>
+      <tbody>
+        ${users.map((u) => `
+          <tr class="clickable" data-id="${u.id}">
+            <td>
+              <div class="cell-name">${esc(u.name)}</div>
+              ${u.username ? `<div class="cell-muted" style="font-size:12px">@${esc(u.username)}</div>` : ""}
+            </td>
+            <td class="coin">${fmt(u.balance)}</td>
+            <td class="coin">${fmt(u.coins_purchased)}</td>
+            <td>${u.opens_count}</td>
+            <td class="cell-muted">${dOnly(u.created_at)}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table></div></div>`;
+  body.querySelectorAll("tr[data-id]").forEach((tr) =>
+    tr.addEventListener("click", () => renderUserDetail(+tr.dataset.id))
+  );
+}
+
+async function renderUserDetail(id) {
+  main.innerHTML = `<div class="loading">Yuklanmoqda…</div>`;
+  const d = await jget(`${API}/users/${id}/`);
+  const u = d.player;
+  const info = [
+    ["Ism", esc(u.name)],
+    ["Username", u.username ? "@" + esc(u.username) : "—"],
+    ["Telegram ID", u.telegram_id || "—"],
+    ["Hozirgi balans", `<span class="coin">${fmt(u.balance)}</span>`],
+    ["Jami sotib olingan coin", `<span class="coin">${fmt(u.coins_purchased)}</span>`],
+    ["Ro'yxatdan o'tgan", dt(u.created_at)],
+    ["Oxirgi faollik", dt(u.last_seen)],
+    ["Jami ochgan keys", d.totals.opens],
+    ["Yutgan skinlar qiymati", `<span class="coin">${fmt(d.totals.won_value)}</span>`],
+  ];
+  main.innerHTML = `
+    <button class="back-btn" id="backBtn">‹ Foydalanuvchilarga qaytish</button>
+    <div class="page-head"><div>
+      <div class="page-title">${esc(u.name)}</div>
+      <div class="page-sub">${u.username ? "@" + esc(u.username) : "Telegram foydalanuvchi"}</div>
+    </div></div>
+
+    <div class="info-grid">
+      ${info.map(([k, v]) => `<div class="info-card"><div class="info-k">${k}</div><div class="info-v">${v}</div></div>`).join("")}
+    </div>
+
+    <div class="section-title">Keys ochish tarixi — qaysi keysdan nima tushgani</div>
+    <div class="table-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>Sana</th><th>Key</th><th>Tushgan skin</th><th>Holati</th><th>Qiymati</th><th>Noyoblik</th><th>Sotilgan</th></tr></thead>
+      <tbody>
+        ${d.opens.length ? d.opens.map((o) => `
+          <tr>
+            <td class="cell-muted">${dt(o.created_at)}</td>
+            <td>${esc(o.case)}</td>
+            <td><img class="thumb" src="${IMG(o.image)}" onerror="this.style.visibility='hidden'"/>
+                <span style="margin-left:8px">${esc(o.skin)}</span></td>
+            <td class="cell-muted">${esc(o.wear || "—")}</td>
+            <td class="coin">${fmt(o.price)}</td>
+            <td><span class="rarity-badge" style="background:${esc(o.color) || "#555"}">${esc(o.rarity || "—")}</span></td>
+            <td>${o.sold ? '<span class="pct">Sotildi</span>' : '<span class="cell-muted">Inventarda</span>'}</td>
+          </tr>`).join("") : `<tr><td colspan="7" class="cell-muted" style="text-align:center;padding:24px">Hali keys ochmagan</td></tr>`}
+      </tbody>
+    </table></div></div>
+
+    ${d.purchases.length ? `
+      <div class="section-title">Coin sotib olish tarixi</div>
+      <div class="table-wrap"><div class="table-scroll"><table>
+        <thead><tr><th>Sana</th><th>Miqdor</th><th>Izoh</th></tr></thead>
+        <tbody>${d.purchases.map((p) => `<tr><td class="cell-muted">${dt(p.created_at)}</td><td class="coin">+${fmt(p.amount)}</td><td class="cell-muted">${esc(p.note || "—")}</td></tr>`).join("")}</tbody>
+      </table></div></div>` : ""}`;
+  document.getElementById("backBtn").addEventListener("click", () => switchView("users"));
 }
 
 // ---------- cases ----------

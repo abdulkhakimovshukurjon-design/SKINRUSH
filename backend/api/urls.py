@@ -2,7 +2,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import admin_api, views
+from . import admin_api, auth_telegram, views
 
 router = DefaultRouter()
 router.register("cases", views.CaseViewSet, basename="case")
@@ -16,6 +16,13 @@ urlpatterns = [
     path("admin/stats/", admin_api.admin_stats, name="admin-stats"),
     path("admin/cases/", admin_api.admin_cases, name="admin-cases"),
     path("admin/cases/<int:pk>/", admin_api.admin_case_detail, name="admin-case-detail"),
+    path("admin/users/", admin_api.admin_users, name="admin-users"),
+    path("admin/users/<int:pk>/", admin_api.admin_user_detail, name="admin-user-detail"),
+    # Player auth (Telegram)
+    path("auth/config/", auth_telegram.auth_config, name="auth-config"),
+    path("auth/me/", auth_telegram.auth_me, name="auth-me"),
+    path("auth/telegram/", auth_telegram.telegram_login, name="auth-telegram"),
+    path("auth/logout/", auth_telegram.auth_logout, name="auth-logout"),
     path("top-drops/", views.top_drops, name="top-drops"),
     path("stats/", views.stats, name="stats"),
     path("me/", views.me, name="me"),

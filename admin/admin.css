@@ -158,6 +158,13 @@ tbody tr.clickable:hover { background: var(--panel-2); }
 .crate-thumb { width: 54px; height: 40px; object-fit: cover; border-radius: 7px; }
 .loading { color: var(--muted); padding: 30px; text-align: center; }
 
+/* user detail info grid */
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.info-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.info-k { color: var(--muted); font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.info-v { font-size: 17px; font-weight: 700; }
+.section-title { font-size: 16px; font-weight: 800; margin: 8px 0 14px; }
+
 @media (max-width: 720px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }

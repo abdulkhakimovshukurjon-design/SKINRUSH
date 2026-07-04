@@ -15,7 +15,8 @@ services:
       python manage.py collectstatic --noinput &&
       python manage.py migrate &&
       python manage.py seed &&
-      python manage.py ensure_admin
+      python manage.py ensure_admin &&
+      python manage.py demo_users
     startCommand: gunicorn skinrush.wsgi:application
     envVars:
       # Postgres connection string, injected automatically from the database above.

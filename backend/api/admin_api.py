@@ -4,7 +4,7 @@ All endpoints are session-authenticated and restricted to staff users.
 The admin front-end (admin/index.html) is a thin client that calls these.
 """
 from django.contrib.auth import authenticate, login, logout
-from django.db.models import Count
+from django.db.models import Count, Sum
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -14,7 +14,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
-from .models import Case, CaseItem, Drop
+from .models import Case, CaseItem, CoinPurchase, Drop, OpenRecord, Player
 
 
 class CsrfExemptSession(SessionAuthentication):
@@ -80,6 +80,64 @@ def admin_stats(request):
         "skins": CaseItem.objects.values("name").distinct().count(),
         "items": CaseItem.objects.count(),
         "drops": Drop.objects.count(),
+        "players": Player.objects.count(),
+        "opens": OpenRecord.objects.count(),
+    })
+
+
+# ---------- users / players ----------
+def _player_row(p):
+    return {
+        "id": p.id,
+        "name": p.display_name,
+        "username": p.username,
+        "telegram_id": p.telegram_id,
+        "photo_url": p.photo_url,
+        "balance": p.balance,
+        "coins_purchased": p.coins_purchased,
+        "opens_count": getattr(p, "opens_count", None),
+        "created_at": p.created_at.isoformat(),
+        "last_seen": p.last_seen.isoformat(),
+    }
+
+
+@api_view(["GET"])
+@authentication_classes([CsrfExemptSession])
+@permission_classes([IsAdminUser])
+def admin_users(request):
+    q = (request.query_params.get("q") or "").strip()
+    qs = Player.objects.annotate(opens_count=Count("opens")).order_by("-created_at")
+    if q:
+        qs = qs.filter(first_name__icontains=q) | qs.filter(username__icontains=q)
+    return Response([_player_row(p) for p in qs])
+
+
+@api_view(["GET"])
+@authentication_classes([CsrfExemptSession])
+@permission_classes([IsAdminUser])
+def admin_user_detail(request, pk):
+    p = Player.objects.filter(pk=pk).annotate(opens_count=Count("opens")).first()
+    if p is None:
+        return Response({"error": "Topilmadi"}, status=404)
+    opens = [
+        {
+            "case": o.case_name, "skin": o.skin_name, "image": o.skin_image,
+            "price": o.skin_price, "rarity": o.rarity, "color": o.color,
+            "wear": o.wear, "sold": o.sold, "created_at": o.created_at.isoformat(),
+        }
+        for o in p.opens.all()[:300]
+    ]
+    purchases = [
+        {"amount": c.amount, "note": c.note, "created_at": c.created_at.isoformat()}
+        for c in p.purchases.all()[:100]
+    ]
+    won_total = p.opens.aggregate(s=Sum("skin_price"))["s"] or 0
+    return Response({
+        "player": _player_row(p),
+        "opens": opens,
+        "purchases": purchases,
+        "totals": {"opens": len(opens), "won_value": won_total,
+                   "purchased": p.coins_purchased},
     })
 
 

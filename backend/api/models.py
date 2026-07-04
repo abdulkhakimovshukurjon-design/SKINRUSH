@@ -6,11 +6,9 @@ what decides whether a player ends up + or - , so it is stored verbatim.
 """
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.text import slugify
 
-WELCOME_BALANCE = 1000  # coins granted to a new account
+STARTING_BALANCE = 1000  # coins granted to a newly registered player
 
 
 class Case(models.Model):
@@ -74,3 +72,72 @@ class Drop(models.Model):
 
     def __str__(self):
         return f"{self.item.name} ({self.case.name})"
+
+
+class Player(models.Model):
+    """A registered player (via Telegram). Holds the balance and profile shown
+    in the admin panel."""
+
+    # Optional link to a Django auth user (used to log the player into a session).
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="player", null=True, blank=True
+    )
+    telegram_id = models.BigIntegerField(unique=True, null=True, blank=True, db_index=True)
+    username = models.CharField(max_length=64, blank=True)     # Telegram @username
+    first_name = models.CharField(max_length=120, blank=True)
+    photo_url = models.URLField(max_length=500, blank=True)
+
+    balance = models.BigIntegerField(default=STARTING_BALANCE)  # current coins
+    coins_purchased = models.BigIntegerField(default=0)         # total coins ever bought
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)  # registered at
+    last_seen = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def display_name(self):
+        return self.first_name or self.username or f"tg{self.telegram_id}"
+
+    def __str__(self):
+        return self.display_name
+
+
+class OpenRecord(models.Model):
+    """One case-opening by a player — 'which case gave what' history.
+
+    Skin/case details are stored as a snapshot so the history survives a catalog
+    re-seed (which recreates Case/CaseItem rows)."""
+
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="opens")
+    case = models.ForeignKey(Case, on_delete=models.SET_NULL, null=True, blank=True)
+    case_name = models.CharField(max_length=120)
+    skin_name = models.CharField(max_length=180)
+    skin_image = models.CharField(max_length=400, blank=True)
+    skin_price = models.BigIntegerField(default=0)
+    rarity = models.CharField(max_length=40, blank=True)
+    color = models.CharField(max_length=9, blank=True)
+    wear = models.CharField(max_length=40, blank=True)
+    sold = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.skin_name} <- {self.case_name}"
+
+
+class CoinPurchase(models.Model):
+    """A coin top-up / purchase by a player."""
+
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="purchases")
+    amount = models.BigIntegerField()
+    note = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"+{self.amount} ({self.player})"

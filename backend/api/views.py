@@ -10,7 +10,8 @@ from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 from . import game, i18n
-from .models import Case, CaseItem, Drop
+from .auth_telegram import current_player
+from .models import Case, CaseItem, Drop, OpenRecord
 from .serializers import CaseSerializer, DropSerializer
 
 TOP_RARITIES = ["Covert", "Extraordinary", "Classified", "Exceptional",
@@ -92,6 +93,16 @@ class CaseViewSet(viewsets.ReadOnlyModelViewSet):
         Drop.objects.create(case=case, item=winner)
         Case.objects.filter(pk=case.pk).update(opens=case.opens + 1)
 
+        # record per-player history when a Telegram player is logged in
+        player = current_player(request)
+        if player:
+            OpenRecord.objects.create(
+                player=player, case=case, case_name=case.name,
+                skin_name=winner.name, skin_image=winner.image,
+                skin_price=winner.price, rarity=winner.rarity,
+                color=winner.color, wear=winner.wear,
+            )
+
         reel = [game.draw_item(items) for _ in range(60)]
         reel[50] = winner
 
@@ -125,6 +136,13 @@ def stats(request):
 
 @api_view(["GET"])
 def me(request):
+    player = current_player(request)
+    if player:
+        return Response({
+            "authenticated": True, "name": player.display_name,
+            "photo": player.photo_url, "balance": player.balance,
+            "streak": 0, "invited": 0, "total_won": player.balance,
+        })
     return Response(get_state(request))
 
 
@@ -154,6 +172,16 @@ def sell(request):
     item = CaseItem.objects.filter(pk=_int(request.data.get("skin_id"))).first()
     if item is None:
         return Response({"error": "Skin topilmadi"}, status=400)
+    player = current_player(request)
+    if player:
+        player.balance += item.price
+        player.save(update_fields=["balance", "last_seen"])
+        rec = player.opens.filter(skin_name=item.name, sold=False).first()
+        if rec:
+            rec.sold = True
+            rec.save(update_fields=["sold"])
+        return Response({"sold": item.price, "balance": player.balance,
+                         "total_won": player.balance})
     state = get_state(request)
     state["balance"] += item.price
     state["total_won"] += item.price
