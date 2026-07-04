@@ -16,9 +16,16 @@ def index(request):
     return static_serve(request, "index.html", document_root=FRONTEND_DIR)
 
 
+def admin_panel(request):
+    # Custom admin single-page app. Auth is enforced by the /api/admin/* endpoints.
+    return static_serve(request, "admin/index.html", document_root=FRONTEND_DIR)
+
+
 urlpatterns = [
-    # Hidden admin panel — no link anywhere on the site; reached only via this URL.
-    path("adminpanel/", admin.site.urls),
+    # Custom admin panel (our own UI) — reached only via this URL, no link on the site.
+    path("adminpanel/", admin_panel, name="adminpanel"),
+    # Built-in Django admin kept as a hidden fallback only.
+    path("django-admin/", admin.site.urls),
     path("api/", include("api.urls")),
     path("", index, name="index"),
     # Any other path is a front-end asset (styles.css, app.js, images/...).

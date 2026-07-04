@@ -2,13 +2,20 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import admin_api, views
 
 router = DefaultRouter()
 router.register("cases", views.CaseViewSet, basename="case")
 
 urlpatterns = [
     path("", include(router.urls)),
+    # Custom admin panel API (staff-only).
+    path("admin/me/", admin_api.admin_me, name="admin-me"),
+    path("admin/login/", admin_api.admin_login, name="admin-login"),
+    path("admin/logout/", admin_api.admin_logout, name="admin-logout"),
+    path("admin/stats/", admin_api.admin_stats, name="admin-stats"),
+    path("admin/cases/", admin_api.admin_cases, name="admin-cases"),
+    path("admin/cases/<int:pk>/", admin_api.admin_case_detail, name="admin-case-detail"),
     path("top-drops/", views.top_drops, name="top-drops"),
     path("stats/", views.stats, name="stats"),
     path("me/", views.me, name="me"),

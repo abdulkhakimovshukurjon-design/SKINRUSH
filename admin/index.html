@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SKINRUSH — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/admin.css?v=1" />
+</head>
+<body>
+  <!-- LOGIN -->
+  <div class="login" id="loginView" hidden>
+    <form class="login__card" id="loginForm">
+      <div class="login__logo">SKIN<span>RUSH</span></div>
+      <div class="login__sub">Boshqaruv paneli</div>
+      <input class="login__input" id="loginUser" placeholder="Login" autocomplete="username" />
+      <input class="login__input" id="loginPass" type="password" placeholder="Parol" autocomplete="current-password" />
+      <div class="login__error" id="loginError"></div>
+      <button class="login__btn" type="submit" id="loginBtn">Kirish</button>
+    </form>
+  </div>
+
+  <!-- APP -->
+  <div class="app" id="appView" hidden>
+    <aside class="sidebar">
+      <div class="sidebar__logo">SKIN<span>RUSH</span></div>
+      <div class="sidebar__tag">ADMIN</div>
+      <nav class="sidebar__nav" id="nav">
+        <button class="nav-item is-active" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="cases">Keyslar</button>
+      </nav>
+      <div class="sidebar__foot">
+        <div class="sidebar__user"><span class="sidebar__dot"></span><span id="whoami"></span></div>
+        <button class="sidebar__logout" id="logoutBtn">Chiqish</button>
+      </div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+
+  <script src="/admin/admin.js?v=1"></script>
+</body>
+</html>
